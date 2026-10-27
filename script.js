@@ -1,102 +1,135 @@
 (() => {
   const config = window.SITE_CONFIG || {};
-  const categories = {
-    loiros: { title: "Loiros", labels: ["Loiros", "Loiros", "Loiros", "Loiros"], tones: ["#d2bba4", "#c7b09c", "#d6c0a7", "#c7ad94"] },
-    morenas: { title: "Morenas iluminadas", labels: ["Morena iluminada", "Morena iluminada", "Morena iluminada", "Morena iluminada"], tones: ["#b99b7d", "#c8a47c", "#af8e70", "#d0ad88"] },
-    alisamento: { title: "Alisamento & cuidados", labels: ["Brazilian keratin", "Alisamento", "Cuidado capilar", "Transformação"], tones: ["#bda58e", "#cfbba6", "#c3aa91", "#d1bba4"] },
-    penteados: { title: "Penteados", labels: ["Penteado", "Penteado", "Penteado", "Penteado"], tones: ["#c5a993", "#d6c2ac", "#b99a81", "#cbb39e"] },
-    maquiagem: { title: "Maquiagem", labels: ["Maquiagem", "Maquiagem", "Maquiagem", "Maquiagem"], tones: ["#c8a58f", "#d4b7a3", "#b89380", "#d1b09a"] },
-  };
-  const track = document.querySelector("#gallery-track");
-  let currentCategory = "loiros";
+  const course = config.course || {};
+  const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  function renderGallery() {
-    const category = categories[currentCategory];
-    const supplied = Array.isArray(config.photos) ? config.photos.filter(photo => photo.category === currentCategory && photo.src) : [];
-    if (supplied.length) {
-      track.innerHTML = supplied.map(photo => `<figure class="gallery-card has-image" style="--tone:#d4c2b0;--shade:#684d3c"><img src="${escape(photo.src)}" alt="${escape(photo.alt || category.title)}" loading="lazy"><figcaption class="gallery-label">${escape(photo.caption || category.title)}</figcaption></figure>`).join("");
-    } else {
-      track.innerHTML = Array.from({ length: 9 }, (_, index) => {
-        const tone = category.tones[index % category.tones.length];
-        const shade = index % 2 ? "#73553f" : "#593d2c";
-        const label = category.labels[index % category.labels.length];
-        return `<article class="gallery-card is-placeholder" style="--tone:${tone};--shade:${shade}" aria-label="Espaço reservado para foto autorizada: ${label}"><span class="placeholder-icon" aria-hidden="true">＋</span><div class="gallery-label">${label.toUpperCase()}<small>FOTO AUTORIZADA A ADICIONAR</small></div></article>`;
-      }).join("");
-    }
-    activeSlide = 0;
-    arrangeSlides();
+  // Galeria de resultados
+  const gallery = document.querySelector("#gallery");
+  function renderGallery(category) {
+    const photos = (config.photos || []).filter(photo => photo.category === category && photo.src);
+    gallery.innerHTML = photos.map((photo, index) => `<figure class="gallery-item" style="--i:${index}"><img src="${escape(photo.src)}" alt="${escape(photo.alt || "")}" loading="lazy"><figcaption>${escape(photo.caption || "")}</figcaption></figure>`).join("");
+    gallery.scrollLeft = 0;
   }
-  function escape(value) { return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
-  let activeSlide = 0;
-  function arrangeSlides() {
-    const slides = [...track.querySelectorAll(".gallery-card")];
-    slides.forEach((slide, index) => {
-      const relative = ((index - activeSlide + slides.length + Math.floor(slides.length / 2)) % slides.length) - Math.floor(slides.length / 2);
-      const distance = window.innerWidth <= 700 ? 64 : Math.min(132, track.clientWidth * .115);
-      const scale = Math.max(.58, 1 - Math.abs(relative) * (window.innerWidth <= 700 ? .14 : .085));
-      slide.style.setProperty("--slide-x", `${relative * distance}px`);
-      slide.style.setProperty("--slide-rotation", `${relative * (window.innerWidth <= 700 ? 8 : 6)}deg`);
-      slide.style.setProperty("--slide-scale", scale);
-      slide.style.zIndex = String(20 - Math.abs(relative));
-      slide.style.opacity = Math.abs(relative) > (window.innerWidth <= 700 ? 2 : 4) ? "0" : String(Math.max(.42, 1 - Math.abs(relative) * .12));
-      slide.style.pointerEvents = Math.abs(relative) > (window.innerWidth <= 700 ? 2 : 4) ? "none" : "auto";
-      slide.setAttribute("aria-hidden", Math.abs(relative) > (window.innerWidth <= 700 ? 2 : 4) ? "true" : "false");
-      if (relative === 0) slide.setAttribute("aria-current", "true"); else slide.removeAttribute("aria-current");
-    });
-    track.setAttribute("aria-label", `Trabalho ${activeSlide + 1} de ${slides.length}. Use as setas para navegar.`);
-  }
-  function moveGallery(direction) {
-    const count = track.querySelectorAll(".gallery-card").length;
-    activeSlide = (activeSlide + direction + count) % count;
-    arrangeSlides();
-  }
-  document.querySelectorAll(".portfolio-tab").forEach(button => button.addEventListener("click", () => {
-    document.querySelectorAll(".portfolio-tab").forEach(tab => { tab.classList.toggle("is-active", tab === button); tab.setAttribute("aria-selected", tab === button ? "true" : "false"); });
-    currentCategory = button.dataset.category; renderGallery();
+  document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(other => { other.classList.toggle("is-active", other === tab); other.setAttribute("aria-selected", String(other === tab)); });
+    renderGallery(tab.dataset.category);
   }));
-  document.querySelector(".gallery-prev").addEventListener("click", () => moveGallery(-1));
-  document.querySelector(".gallery-next").addEventListener("click", () => moveGallery(1));
-  track.addEventListener("keydown", event => {
-    if (event.key === "ArrowLeft") { event.preventDefault(); moveGallery(-1); }
-    if (event.key === "ArrowRight") { event.preventDefault(); moveGallery(1); }
-  });
-  let dragStartX = null;
-  track.addEventListener("pointerdown", event => { dragStartX = event.clientX; track.setPointerCapture(event.pointerId); track.classList.add("is-dragging"); });
-  track.addEventListener("pointerup", event => {
-    if (dragStartX === null) return;
-    const dragDistance = event.clientX - dragStartX;
-    if (Math.abs(dragDistance) > 35) moveGallery(dragDistance > 0 ? -1 : 1);
-    dragStartX = null; track.classList.remove("is-dragging");
-  });
-  track.addEventListener("pointercancel", () => { dragStartX = null; track.classList.remove("is-dragging"); });
-  window.addEventListener("resize", arrangeSlides);
-  renderGallery();
-
-  const services = {
-    color: { index: "01 / 03", eyebrow: "COR & PERSONALIDADE", title: "Coloração", text: "Técnicas e possibilidades de cor conversadas de forma personalizada após conhecer o seu cabelo.", tags: ["Loiros", "Morena iluminada"], who: "Converse com a Joice sobre o resultado que procura.", time: "Consultar a profissional", price: "Solicitar orçamento" },
-    care: { index: "02 / 03", eyebrow: "ALINHAMENTO & CUIDADO", title: "Cuidado capilar", text: "O perfil profissional destaca serviços de Brazilian keratin e alisamento. Detalhes devem ser confirmados com a Joice.", tags: ["Brazilian keratin", "Alisamento"], who: "Indicação conforme avaliação profissional.", time: "Consultar a profissional", price: "Solicitar orçamento" },
-    finish: { index: "03 / 03", eyebrow: "FINALIZAÇÃO & BELEZA", title: "Seu toque final", text: "Penteados e maquiagem aparecem no perfil. Confirme disponibilidade e detalhes diretamente com a profissional.", tags: ["Penteados", "Maquiagem*"], who: "Converse sobre a ocasião e o que você deseja.", time: "Consultar a profissional", price: "Solicitar orçamento", note: "*A maquiagem é mencionada na bio; confirme se está ativa como serviço." },
+  const scrollGallery = direction => {
+    const item = gallery.querySelector(".gallery-item");
+    gallery.scrollBy({ left: direction * (item ? item.offsetWidth + 20 : 300), behavior: "smooth" });
   };
-  const detail = document.querySelector("#service-detail");
-  function renderService(key) {
-    const service = services[key];
-    detail.innerHTML = `<p class="eyebrow">${service.index} &nbsp;·&nbsp; ${service.eyebrow}</p><h3>${service.title}</h3><p>${service.text}</p><div class="service-tags">${service.tags.map(tag => `<span>${tag}</span>`).join("")}</div><div class="service-facts"><div><small>PARA QUEM</small><b>${service.who}</b></div><div><small>DURAÇÃO</small><b>${service.time}</b></div><div><small>VALORES</small><b>${service.price}</b></div></div>${service.note ? `<p class="service-note">${service.note}</p>` : ""}`;
-  }
-  document.querySelectorAll(".service-choice").forEach(button => button.addEventListener("click", () => {
-    document.querySelectorAll(".service-choice").forEach(tab => { tab.classList.toggle("is-active", tab === button); tab.setAttribute("aria-selected", tab === button ? "true" : "false"); });
-    renderService(button.dataset.service);
-  }));
-  renderService("color");
+  document.querySelectorAll(".arrow").forEach(arrow => arrow.addEventListener("click", () => scrollGallery(Number(arrow.dataset.dir))));
+  gallery.addEventListener("keydown", event => {
+    if (event.key === "ArrowLeft") { event.preventDefault(); scrollGallery(-1); }
+    if (event.key === "ArrowRight") { event.preventDefault(); scrollGallery(1); }
+  });
+  renderGallery("loiros");
 
+  // Depoimentos: a seção só aparece quando houver depoimentos cadastrados
+  const testimonials = Array.isArray(config.testimonials) ? config.testimonials.filter(item => item.text) : [];
+  if (testimonials.length) {
+    document.querySelector("#testimonial-grid").innerHTML = testimonials.map(item => `<article class="testimonial"><div class="testimonial-stars" aria-hidden="true">★★★★★</div><blockquote>“${escape(item.text)}”</blockquote><cite>${escape(item.name || "")}${item.role ? `<small>${escape(item.role)}</small>` : ""}</cite></article>`).join("");
+    document.querySelector("#depoimentos").hidden = false;
+  }
+
+  // Links de WhatsApp e checkout
   const waDigits = String(config.whatsapp || "").replace(/\D/g, "");
-  const bookingTarget = waDigits ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Olá, Joice! Gostaria de saber mais sobre os serviços e horários.")}` : (config.bookingUrl || "#contato");
-  document.querySelectorAll(".booking-link").forEach(link => { link.href = bookingTarget; if (bookingTarget.startsWith("https://")) { link.target = "_blank"; link.rel = "noreferrer"; } });
-  document.querySelectorAll("[data-config]").forEach(el => { const value = config[el.dataset.config]; if (value && el.dataset.config !== "whatsapp-display") el.textContent = value; });
+  const waLink = message => waDigits ? `https://wa.me/${waDigits}?text=${encodeURIComponent(message)}` : "";
+  function setLinks(selector, target) {
+    document.querySelectorAll(selector).forEach(link => { link.href = target; if (target.startsWith("https://")) { link.target = "_blank"; link.rel = "noreferrer"; } });
+  }
+  setLinks(".booking-link", waLink("Olá, Joice! Gostaria de agendar um horário no salão.") || config.bookingUrl || "#contato");
+  setLinks(".course-online-link", (course.online && course.online.checkoutUrl) || waLink("Olá, Joice! Quero comprar o curso online.") || "#inscricao");
+  setLinks(".course-presencial-link", waLink("Olá, Joice! Quero garantir minha vaga no curso presencial.") || "#inscricao");
+  setLinks(".course-question-link", waLink("Olá, Joice! Tenho uma dúvida sobre o curso.") || "#contato");
+
+  // Textos vindos do site-config.js
+  document.querySelectorAll("[data-config]").forEach(el => { const value = config[el.dataset.config]; if (value) el.textContent = value; });
+  document.querySelectorAll("[data-course]").forEach(el => { const value = el.dataset.course.split(".").reduce((obj, key) => obj && obj[key], course); if (value) el.textContent = value; });
   const waDisplay = document.querySelector('[data-config="whatsapp-display"]');
   if (waDigits && waDisplay) waDisplay.textContent = `+${waDigits}`;
+
+  // Mapa
+  if (config.address) {
+    const query = encodeURIComponent(config.address);
+    const iframe = document.querySelector("#map iframe");
+    iframe.src = `https://www.google.com/maps?q=${query}&output=embed`;
+    iframe.hidden = false;
+    document.querySelector("#map").classList.add("has-map");
+    const mapLink = document.querySelector(".map-link");
+    mapLink.href = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    mapLink.hidden = false;
+  }
+
   document.querySelector("#year").textContent = new Date().getFullYear();
+
+  // Arrastar a galeria com o mouse
+  let drag = null;
+  gallery.addEventListener("pointerdown", event => {
+    if (event.pointerType !== "mouse") return;
+    drag = { x: event.clientX, left: gallery.scrollLeft, moved: false };
+  });
+  window.addEventListener("pointermove", event => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    if (Math.abs(dx) > 4) { drag.moved = true; gallery.classList.add("is-dragging"); }
+    gallery.scrollLeft = drag.left - dx;
+  });
+  window.addEventListener("pointerup", () => { drag = null; gallery.classList.remove("is-dragging"); });
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  // Header, barra de progresso, WhatsApp e parallax (um único loop de rolagem)
+  const header = document.querySelector(".header");
+  const progress = document.querySelector(".scroll-progress");
+  const whatsapp = document.querySelector(".whatsapp-float");
+  const parallaxItems = finePointer && !reduceMotion ? [...document.querySelectorAll(".hero-frame, .split-media img")] : [];
+  let lastY = window.scrollY;
+  let ticking = false;
+  function onScroll() {
+    const y = window.scrollY;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    header.classList.toggle("is-scrolled", y > 10);
+    const menuOpen = toggle.getAttribute("aria-expanded") === "true";
+    header.classList.toggle("is-hidden", !menuOpen && y > lastY && y > 400);
+    lastY = y;
+    progress.style.setProperty("--progress", max > 0 ? (y / max).toFixed(4) : 0);
+    whatsapp.classList.toggle("is-visible", y > window.innerHeight * .6);
+    parallaxItems.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      const offset = Math.max(-28, Math.min(28, (rect.top + rect.height / 2 - window.innerHeight / 2) * -0.05));
+      el.style.setProperty("--parallax", `${offset.toFixed(1)}px`);
+    });
+    ticking = false;
+  }
+  window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+
+  // Cards: brilho que segue o cursor e leve inclinação 3D nos planos
+  if (finePointer) {
+    document.querySelectorAll(".pain-card, .plan, .service-card, .fit-card, .credentials li, .testimonial").forEach(card => {
+      card.classList.add("spotlight");
+      card.addEventListener("pointermove", event => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+        card.style.setProperty("--my", `${event.clientY - rect.top}px`);
+      });
+    });
+    if (!reduceMotion) {
+      document.querySelectorAll(".plan").forEach(plan => {
+        plan.addEventListener("pointermove", event => {
+          const rect = plan.getBoundingClientRect();
+          const rx = ((event.clientY - rect.top) / rect.height - .5) * -6;
+          const ry = ((event.clientX - rect.left) / rect.width - .5) * 6;
+          plan.style.transform = `perspective(1100px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateY(-6px)`;
+        });
+        plan.addEventListener("pointerleave", () => { plan.style.transform = ""; });
+      });
+    }
+  }
+
   const toggle = document.querySelector(".menu-toggle");
-  const nav = document.querySelector("#primary-nav");
+  const nav = document.querySelector("#nav");
   const setMenuOpen = open => {
     toggle.setAttribute("aria-expanded", String(open));
     toggle.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
@@ -104,51 +137,61 @@
   };
   toggle.addEventListener("click", () => setMenuOpen(toggle.getAttribute("aria-expanded") !== "true"));
   nav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => setMenuOpen(false)));
-  document.addEventListener("click", event => {
-    if (toggle.getAttribute("aria-expanded") === "true" && !event.target.closest(".site-header")) setMenuOpen(false);
-  });
+  document.addEventListener("click", event => { if (!event.target.closest(".header")) setMenuOpen(false); });
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") {
-      setMenuOpen(false);
-      toggle.focus();
-    }
+    if (event.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") { setMenuOpen(false); toggle.focus(); }
   });
 
-  const revealTargets = document.querySelectorAll(
-    ".hero-copy, .hero-visual, .values-strip > div, .section-heading, .gallery-shell, .gallery-hint, .approach-visual, .approach-copy, .journey-heading, .step, .conversation-band > :not(.band-flower), .service-list, .service-detail, .about-copy, .about-photo, .principles-inner > *, .testimonial-empty, .booking-band > :not(.booking-flower), .contact-intro, .contact-card, .faq-heading, .faq-list"
-  );
-  revealTargets.forEach(element => element.classList.add("reveal"));
-  [".values-strip > div", ".step", ".principle-grid article", ".contact-item"].forEach(selector => {
-    document.querySelectorAll(selector).forEach((element, index) => element.style.setProperty("--reveal-delay", `${Math.min(index, 5) * 75}ms`));
+  onScroll();
+
+  // Animações de entrada ao rolar: [seletor, direção]
+  const revealGroups = [
+    [".authority-item, .section-head, .pain-card, .pains-bridge, .modules li, .pillars li, .fit-card, .plan, .faq-list details, .service-card, .testimonial, .offer-note, .salon-cta, .contact-list div", "up"],
+    [".split-media, .map", "clip"],
+    [".method .split-copy, .faq-head, .curriculum-head", "right"],
+    [".instructor .split-copy, .location-info", "left"],
+    [".final-cta-inner, .marquee", "scale"],
+  ];
+  const revealTargets = [];
+  revealGroups.forEach(([selector, direction]) => document.querySelectorAll(selector).forEach(el => {
+    el.classList.add("reveal");
+    el.dataset.reveal = direction;
+    revealTargets.push(el);
+  }));
+  [".authority-item", ".pain-card", ".modules li", ".pillars li", ".fit-card", ".plan", ".faq-list details", ".service-card", ".contact-list div", ".testimonial"].forEach(selector => {
+    document.querySelectorAll(selector).forEach((el, index) => el.style.setProperty("--delay", `${Math.min(index, 5) * 90}ms`));
   });
   document.documentElement.classList.add("js");
-
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
-    revealTargets.forEach(element => element.classList.add("is-visible"));
+  // Ao terminar a entrada, remove as classes para liberar os efeitos de hover
+  const settle = el => {
+    el.classList.remove("reveal", "is-visible");
+    el.removeAttribute("data-reveal");
+    el.style.removeProperty("--delay");
+  };
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    revealTargets.forEach(settle);
   } else {
     const revealObserver = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        revealObserver.unobserve(entry.target);
+        const el = entry.target;
+        el.classList.add("is-visible");
+        revealObserver.unobserve(el);
+        const delay = parseFloat(el.style.getPropertyValue("--delay")) || 0;
+        setTimeout(() => settle(el), delay + 1800);
       });
-    }, { threshold: 0.14, rootMargin: "0px 0px -35px 0px" });
-    revealTargets.forEach(element => revealObserver.observe(element));
+    }, { threshold: .12, rootMargin: "0px 0px -40px 0px" });
+    revealTargets.forEach(el => revealObserver.observe(el));
   }
 
-  const sectionLinks = [...nav.querySelectorAll('a[href^="#"]')];
-  const observedSections = sectionLinks.map(link => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+  // Link ativo no menu
+  const navLinks = [...nav.querySelectorAll('a[href^="#"]')];
   if ("IntersectionObserver" in window) {
     const navObserver = new IntersectionObserver(entries => {
-      const visibleSection = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!visibleSection) return;
-      sectionLinks.forEach(link => {
-        const active = link.getAttribute("href") === `#${visibleSection.target.id}`;
-        link.classList.toggle("is-current", active);
-        if (active) link.setAttribute("aria-current", "location");
-        else link.removeAttribute("aria-current");
-      });
-    }, { rootMargin: "-30% 0px -60% 0px", threshold: [0, 0.15, 0.4] });
-    observedSections.forEach(section => navObserver.observe(section));
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      navLinks.forEach(link => link.classList.toggle("is-current", link.getAttribute("href") === `#${visible.target.id}`));
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    navLinks.map(link => document.querySelector(link.getAttribute("href"))).filter(Boolean).forEach(section => navObserver.observe(section));
   }
 })();

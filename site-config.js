@@ -4,8 +4,24 @@
   // Preencha com o número internacional, somente dígitos, quando confirmado.
   whatsapp: "",
   bookingUrl: "",
+  // Campos vazios mantêm o texto padrão da página ("Valor a confirmar", etc.).
+  course: {
+    online: {
+      price: "", // ex.: "R$ 497" ou "US$ 197"
+      installments: "", // ex.: "ou 12x de R$ 49,70"
+      // Link do checkout (Hotmart, Kiwify, Stripe...). Vazio = abre o WhatsApp.
+      checkoutUrl: "",
+    },
+    presencial: {
+      price: "",
+      installments: "",
+      dates: "", // ex.: "15 e 16 de novembro"
+      location: "",
+    },
+  },
   cityRegion: "A confirmar com a Joice",
-  address: "A confirmar com a Joice",
+  // Preencha com o endereço completo para mostrar o link "Ver no mapa".
+  address: "",
   hours: "A confirmar com a Joice",
   budgetPolicy: "Consulte valores e disponibilidade pelo canal de agendamento.",
   credentials: "Licença profissional na Flórida",
@@ -67,6 +83,8 @@
     },
   ],
   // Adicione apenas depoimentos reais com autorização de publicação.
+  // A seção de depoimentos só aparece no site quando houver pelo menos um.
+  // Formato: { name: "Nome da aluna", role: "Cabeleireira em ...", text: "Depoimento..." }
   testimonials: [],
 };
 
