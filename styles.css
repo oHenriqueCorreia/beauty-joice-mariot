@@ -82,6 +82,8 @@ h1 em, h2 em { font-style: italic; background: var(--gold-grad); -webkit-backgro
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold-light); font: italic 16px var(--serif); letter-spacing: -.06em; }
 .brand-name { display: flex; flex-direction: column; font-size: 14px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2; }
 .brand-name small { font-size: 10px; font-weight: 500; letter-spacing: .3em; color: var(--gold); }
+.brand-logo { width: auto; height: 52px; }
+.brand-logo-lg { width: clamp(150px, 16vw, 200px); height: auto; }
 .nav { display: flex; gap: 32px; margin-left: auto; }
 .nav a { position: relative; color: var(--text-2); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; }
 .nav a:hover, .nav a.is-current { color: var(--gold-light); }
@@ -428,9 +430,7 @@ html.js .reveal:not(.is-visible) .eyebrow::before { transform: scaleX(0); }
   :root { --header-h: 68px; }
   .container { padding: 0 20px; }
   .header-inner { gap: 12px; }
-  .brand-mark { width: 36px; height: 36px; font-size: 14px; }
-  .brand-name { font-size: 12px; }
-  .brand-name small { font-size: 9px; }
+  .brand-logo { height: 42px; }
   .header-cta { margin-left: auto; min-height: 40px; padding: 0 16px; letter-spacing: .1em; }
   .menu-toggle { position: relative; display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 1px solid var(--line-gold); border-radius: 50%; background: transparent; }
   .menu-toggle span { position: absolute; left: 13px; width: 16px; height: 1px; background: var(--gold-light); transition: transform .25s, top .25s; }
@@ -466,7 +466,6 @@ html.js .reveal:not(.is-visible) .eyebrow::before { transform: scaleX(0); }
   .section { padding: 72px 0; }
   .section-head { margin-bottom: 40px; }
   .lead { font-size: 16px; }
-  .brand-name small { display: none; }
   .header-cta { padding: 0 14px; font-size: 10px; }
   .award-pill { font-size: 11px; padding: 8px 14px 8px 12px; }
   .hero-actions .btn { flex: 1 1 100%; }
