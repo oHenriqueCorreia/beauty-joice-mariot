@@ -7,9 +7,29 @@
   const gallery = document.querySelector("#gallery");
   function renderGallery(category) {
     const photos = (config.photos || []).filter(photo => photo.category === category && photo.src);
-    gallery.innerHTML = photos.map((photo, index) => `<figure class="gallery-item" style="--i:${index}"><img src="${escape(photo.src)}" alt="${escape(photo.alt || "")}" loading="lazy"><figcaption>${escape(photo.caption || "")}</figcaption></figure>`).join("");
-    gallery.scrollLeft = 0;
+    if (!photos.length) { gallery.innerHTML = '<p class="gallery-empty">Novos resultados em breve.</p>'; return; }
+    const item = (photo, index, clone) => `<figure class="gallery-item" style="--i:${index}"${clone ? ' aria-hidden="true"' : ""}><img src="${escape(photo.src)}" alt="${clone ? "" : escape(photo.alt || "")}" loading="lazy"><figcaption>${escape(photo.caption || "")}</figcaption></figure>`;
+    // Três cópias em sequência: o scroll salta uma cópia inteira ao se aproximar das bordas (loop infinito)
+    const loop = photos.length > 1;
+    const sets = loop ? [true, false, true] : [false];
+    gallery.innerHTML = sets.map(clone => photos.map((photo, index) => item(photo, index, clone)).join("")).join("");
+    gallery.classList.toggle("is-loop", loop);
+    gallery.scrollLeft = loop ? setWidth() : 0;
   }
+  function setWidth() {
+    const items = gallery.querySelectorAll(".gallery-item");
+    const size = items.length / 3;
+    return size ? items[size].offsetLeft - items[0].offsetLeft : 0;
+  }
+  function wrapGallery() {
+    if (!gallery.classList.contains("is-loop")) return;
+    const width = setWidth();
+    if (!width) return;
+    if (gallery.scrollLeft < width * .5) gallery.scrollLeft += width;
+    else if (gallery.scrollLeft > width * 1.5) gallery.scrollLeft -= width;
+  }
+  gallery.addEventListener("scroll", wrapGallery, { passive: true });
+  window.addEventListener("resize", () => { if (gallery.classList.contains("is-loop")) gallery.scrollLeft = setWidth() + (gallery.scrollLeft % (setWidth() || 1)); });
   document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(other => { other.classList.toggle("is-active", other === tab); other.setAttribute("aria-selected", String(other === tab)); });
     renderGallery(tab.dataset.category);
@@ -24,6 +44,15 @@
     if (event.key === "ArrowRight") { event.preventDefault(); scrollGallery(1); }
   });
   renderGallery("loiros");
+
+  // Blog de técnicas de mechas
+  const posts = Array.isArray(config.posts) ? config.posts : [];
+  const blogGrid = document.querySelector("#blog-grid");
+  if (posts.length) {
+    blogGrid.innerHTML = posts.map(post => `<article class="post"><h3>${escape(post.title)}</h3><p class="post-summary">${escape(post.summary)}</p><details><summary>Ler guia</summary><p>${escape(post.body)}</p>${(post.tips || []).length ? `<ul>${post.tips.map(tip => `<li>${escape(tip)}</li>`).join("")}</ul>` : ""}</details></article>`).join("");
+  } else {
+    document.querySelector("#blog").hidden = true;
+  }
 
   // Depoimentos: a seção só aparece quando houver depoimentos cadastrados
   const testimonials = Array.isArray(config.testimonials) ? config.testimonials.filter(item => item.text) : [];
@@ -146,7 +175,7 @@
 
   // Animações de entrada ao rolar: [seletor, direção]
   const revealGroups = [
-    [".authority-item, .section-head, .pain-card, .pains-bridge, .modules li, .pillars li, .fit-card, .plan, .faq-list details, .service-card, .testimonial, .offer-note, .salon-cta, .contact-list div", "up"],
+    [".authority-item, .section-head, .pain-card, .pains-bridge, .modules li, .pillars li, .fit-card, .plan, .faq-list details, .service-card, .testimonial, .post, .offer-note, .salon-cta, .contact-list div", "up"],
     [".split-media, .map", "clip"],
     [".method .split-copy, .faq-head, .curriculum-head", "right"],
     [".instructor .split-copy, .location-info", "left"],
